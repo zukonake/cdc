@@ -117,7 +117,7 @@ void parse_line(char *line, size_t line_size)
 {
     bool read_precision = false;
     bool negate         = false;
-    for(size_t i = 0; i < line_size; ++i)
+    for(size_t i = 0; i < line_size - 1; ++i)
     {
         switch(line[i])
         {
@@ -155,7 +155,9 @@ void parse_line(char *line, size_t line_size)
                     }
                     push(val);
                 }
-            } break;
+            }
+            else error("invalid command");
+            break;
         }
     }
 }
