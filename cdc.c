@@ -144,14 +144,12 @@ void parse_line(char *line, size_t line_size)
                 if(read_precision)
                 {
                     precision = val;
-                    read_precision = false;
                 }
                 else
                 {
                     if(negate)
                     {
                         val    = -val;
-                        negate = false;
                     }
                     push(val);
                 }
