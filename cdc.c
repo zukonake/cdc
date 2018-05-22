@@ -13,15 +13,7 @@ size_t   stack_size = 0;
 unsigned precision  = 2;
 
 void error(const char *msg) { printf("cdc: %s\n", msg); }
-void print(Num a)
-{
-    char *format = malloc(sizeof(char) * ((log10(precision) + 1) + 5));
-    strcpy(format, "%.");
-    sprintf(format + 2, "%d", precision);
-    strcat(format, "f\n");
-    printf(format, a);
-    free(format);
-}
+void print(Num a) { printf("%.*f\n", precision, a); }
 
 int check_empty()
 {
