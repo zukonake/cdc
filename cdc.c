@@ -10,7 +10,7 @@ typedef double Num;
 
 Num     *stack;
 size_t   stack_size = 0;
-unsigned precision  = 2;
+unsigned precision  = 4;
 bool     running    = true;
 
 void error(const char *msg) { printf("cdc: %s\n", msg); }
