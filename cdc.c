@@ -11,6 +11,7 @@ typedef double Num;
 Num     *stack;
 size_t   stack_size = 0;
 unsigned precision  = 2;
+bool     running    = true;
 
 void error(const char *msg) { printf("cdc: %s\n", msg); }
 void print(Num a) { printf("%.*f\n", precision, a); }
@@ -112,54 +113,62 @@ Num func_sqrt(Num a)
     return sqrt(a);
 }
 
+void parse_line(char *line, size_t line_size)
+{
+    bool read_precision = false;
+    bool negate         = false;
+    for(size_t i = 0; i < line_size; ++i)
+    {
+        switch(line[i])
+        {
+            case ' ':                          break;
+            case '+': apply_binary(&func_add); break;
+            case '-': apply_binary(&func_sub); break;
+            case '*': apply_binary(&func_mul); break;
+            case '/': apply_binary(&func_div); break;
+            case '^': apply_binary(&pow);      break;
+            case 'v': apply_unary(&func_sqrt); break;
+            case 'p': print_top();             break;
+            case 'k': read_precision = true;   break;
+            case 'b': dump();                  break;
+            case 's': print_size();            break;
+            case 'd': duplicate_top();         break;
+            case 'c': clear();                 break;
+            case 'q': running = false;         break;
+            case '_': negate  = true;          break;
+            default:
+            if(isdigit(line[i]))
+            {
+                Num val = strtod(line + i, (char **)&i); //i is now an address to the next char
+                i -= (size_t)line + 1;                   //convert address to iterator
+                if(read_precision)
+                {
+                    precision = val;
+                    read_precision = false;
+                }
+                else
+                {
+                    if(negate)
+                    {
+                        val    = -val;
+                        negate = false;
+                    }
+                    push(val);
+                }
+            } break;
+        }
+    }
+}
+
 int main()
 {
     char  *line     = NULL;
     size_t line_buf = 0;
     size_t line_size;
-    bool running        = true;
-    bool read_precision = false;
-    bool negate         = false;
     while(running)
     {
         line_size  = getline(&line, &line_buf, stdin);
-        for(size_t i = 0; i < line_size; ++i)
-        {
-            switch(line[i])
-            {
-                case ' ':                          break;
-                case '+': apply_binary(&func_add); break;
-                case '-': apply_binary(&func_sub); break;
-                case '*': apply_binary(&func_mul); break;
-                case '/': apply_binary(&func_div); break;
-                case '^': apply_binary(&pow);      break;
-                case 'v': apply_unary(&func_sqrt); break;
-                case 'p': print_top();             break;
-                case 'k': read_precision = true;   break;
-                case 'b': dump();                  break;
-                case 's': print_size();            break;
-                case 'd': duplicate_top();         break;
-                case 'c': clear();                 break;
-                case 'q': running = false;         break;
-                case '_': negate  = true;          break;
-                default:
-                if(isdigit(line[i]))
-                {
-                    Num val = strtod(line + i, (char **)&i);
-                    i -= (size_t)line + 1;
-                    if(read_precision)
-                    {
-                        precision = val;
-                        read_precision = false;
-                    }
-                    else
-                    {
-                        push(negate ? -val : val);
-                        negate = false;
-                    }
-                } break;
-            }
-        }
+        parse_line(line, line_size);
     }
     clear();
     free(line);
