@@ -34,7 +34,7 @@ void pop()
 
 void push(Num val)
 {
-    stack            = realloc(stack, sizeof(Num) * (++stack_size));
+    stack = realloc(stack, sizeof(Num) * (++stack_size));
     stack[stack_size - 1] = val;
 }
 
