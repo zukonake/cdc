@@ -128,7 +128,7 @@ void parse_line(char *line, size_t line_size)
             case '/': apply_binary(&func_div); break;
             case '^': apply_binary(&pow);      break;
             case 'v': apply_unary(&func_sqrt); break;
-            case 'p': print_top();             break;
+            case '=': print_top();             break;
             case 'k': read_precision = true;   break;
             case 'b': dump();                  break;
             case 's': print_size();            break;
