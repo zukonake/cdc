@@ -43,10 +43,7 @@ void pop()
     else
     {
         Num *new_stack = realloc(stack, sizeof(Num) * stack_size);
-        if(new_stack == NULL)
-        {
-            error("stack allocation error when popping");
-        }
+        if(new_stack == NULL) error("stack allocation error when popping");
         else stack = new_stack;
     }
 }
@@ -56,10 +53,7 @@ void push(Num val)
     Num *new_stack;
     if(++stack_size == 1) new_stack = malloc(sizeof(Num));
     else                  new_stack = realloc(stack, sizeof(Num) * stack_size);
-    if(new_stack == NULL)
-    {
-        error("stack allocation error when pushing");
-    }
+    if(new_stack == NULL) error("stack allocation error when pushing");
     else
     {
         stack = new_stack;
@@ -161,16 +155,10 @@ void parse_line(char *line, size_t line_size)
             {
                 Num val = strtod(line + i, (char **)&i); //i is now an address to the next char
                 i -= (size_t)line + 1;                   //convert address to iterator
-                if(read_precision)
-                {
-                    precision = val;
-                }
+                if(read_precision) precision = val;
                 else
                 {
-                    if(negate)
-                    {
-                        val    = -val;
-                    }
+                    if(negate) val = -val;
                     push(val);
                 }
             }
