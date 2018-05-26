@@ -14,7 +14,18 @@ unsigned precision  = 4;
 bool     running    = true;
 
 void error(const char *msg) { printf("cdc: %s\n", msg); }
+
 void print(Num a) { printf("%.*f\n", precision, a); }
+
+void clear()
+{
+    if(stack_size == 0) error("stack already cleared");
+    else
+    {
+        free(stack);
+        stack_size = 0;
+    }
+}
 
 int check_empty()
 {
@@ -28,29 +39,39 @@ int check_empty()
 
 void pop()
 {
-    if(check_empty() != 0) return;
-    stack = realloc(stack, sizeof(Num) * (--stack_size));
+    if(--stack_size == 0) free(stack);
+    else
+    {
+        Num *new_stack = realloc(stack, sizeof(Num) * stack_size);
+        if(new_stack == NULL)
+        {
+            error("stack allocation error when popping");
+        }
+        else stack = new_stack;
+    }
 }
 
 void push(Num val)
 {
-    stack = realloc(stack, sizeof(Num) * (++stack_size));
-    stack[stack_size - 1] = val;
+    Num *new_stack;
+    if(++stack_size == 1) new_stack = malloc(sizeof(Num));
+    else                  new_stack = realloc(stack, sizeof(Num) * stack_size);
+    if(new_stack == NULL)
+    {
+        error("stack allocation error when pushing");
+    }
+    else
+    {
+        stack = new_stack;
+        stack[stack_size - 1] = val;
+    }
 }
 
-int peek(Num *val)
-{
-    if(check_empty() != 0) return -1;
-    *val = stack[stack_size - 1];
-    return 0;
-}
-
-void clear() { while(stack_size != 0) pop(); }
+Num peek() { return stack[stack_size - 1]; }
 
 void print_top()
 {
-    Num val;
-    if(peek(&val) == 0) print(val);
+    if(check_empty() == 0) print(peek());
 }
 
 void dump()
@@ -62,15 +83,14 @@ void print_size() { print(stack_size); }
 
 void duplicate_top()
 {
-    Num a;
-    if(peek(&a) == 0) push(a);
+    if(check_empty() == 0) push(peek());
 }
 
 void apply_unary(Num (*f)(Num))
 {
-    Num a;
-    if(peek(&a) == 0)
+    if(check_empty() == 0)
     {
+        Num a = peek();
         pop();
         push((*f)(a));
     }
@@ -78,13 +98,13 @@ void apply_unary(Num (*f)(Num))
 
 void apply_binary(Num (*f)(Num, Num))
 {
-    Num b;
-    if(peek(&b) == 0)
+    if(check_empty() == 0)
     {
+        Num b = peek();
         pop();
-        Num a;
-        if(peek(&a) == 0)
+        if(check_empty() == 0)
         {
+            Num a = peek();
             pop();
             push((*f)(a, b));
         }
@@ -170,7 +190,7 @@ int main()
         line_size  = getline(&line, &line_buf, stdin);
         parse_line(line, line_size);
     }
-    clear();
+    if(stack_size != 0) clear();
     free(line);
     return 0;
 }
