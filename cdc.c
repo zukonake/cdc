@@ -133,6 +133,7 @@ void wrap_div(mpf_t rop, const mpf_t op1, const mpf_t op2)
     if(mpf_cmp_ui(op2, 0) == 0)
     {
         error("divide by zero");
+        return;
     }
     mpf_div(rop, op1, op2);
 }
@@ -142,6 +143,7 @@ void wrap_sqrt(mpf_t rop, const mpf_t op)
     if(mpf_cmp_ui(op, 0) < 0)
     {
         error("negative square root");
+        return;
     }
     mpf_sqrt(rop, op);
 }
