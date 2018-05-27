@@ -160,6 +160,34 @@ void take_digits(const char **str)
                            **str == '.')) ++(*str);
 }
 
+void parse_number(const char **start, const char *end, bool read_precision, bool negate)
+{
+    size_t len = (end - *start) + 1;
+    char *str = malloc(sizeof(char) * len);
+    mpf_t val;
+    mpf_init(val);
+    strncpy(str, *start, len - 1);
+    str[len - 1] = '\0';
+    if(mpf_set_str(val, str, 10) != 0)
+    {
+        error("error while converting input to number");
+    }
+    free(str);
+    *start = end - 1;
+    if(read_precision)
+    {
+        precision = mpf_get_ui(val);
+        mpf_set_default_prec(precision);
+    }
+    else
+    {
+        if(negate) mpf_neg(val, val);
+        push();
+        mpf_set(*peek(), val);
+    }
+    mpf_clear(val);
+}
+
 void parse_line(const char *line, size_t line_size)
 {
     bool read_precision = false;
@@ -188,33 +216,7 @@ void parse_line(const char *line, size_t line_size)
             {
                 const char *end = i;
                 take_digits(&end);
-                if(end != i)
-                {
-                    size_t len = (end - i) + 1;
-                    char *str = malloc(sizeof(char) * len);
-                    mpf_t val;
-                    mpf_init(val);
-                    strncpy(str, i, len - 1);
-                    str[len - 1] = '\0';
-                    if(mpf_set_str(val, str, 10) != 0)
-                    {
-                        error("error while converting input to number");
-                    }
-                    free(str);
-                    i = end - 1;
-                    if(read_precision)
-                    {
-                        precision = mpf_get_ui(val);
-                        mpf_set_default_prec(precision);
-                    }
-                    else
-                    {
-                        if(negate) mpf_neg(val, val);
-                        push();
-                        mpf_set(*peek(), val);
-                    }
-                    mpf_clear(val);
-                }
+                if(end != i) parse_number(&i, end, read_precision, negate);
                 else error("invalid command");
             } break;
         }
