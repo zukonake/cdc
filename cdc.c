@@ -6,23 +6,23 @@
 #include <math.h>
 #include <ctype.h>
 //
-#include <gmp.h>
+#include <mpfr.h>
 
-mpf_t    *stack;
-size_t   stack_size = 0;
-unsigned precision  = 2;
-bool     running    = true;
+mpfr_t   *stack;
+size_t    stack_size = 0;
+unsigned  precision  = 2;
+bool      running    = true;
 
 void error(const char *msg) { printf("cdc: %s\n", msg); }
 
-void print(const mpf_t a) { gmp_printf("%.*Ff\n", precision, a); }
+void print(const mpfr_t a) { mpfr_printf("%.*Rf\n", precision, a); }
 
 void clear()
 {
     if(stack_size == 0) error("stack already cleared");
     else
     {
-        for(mpf_t *i = stack + stack_size - 1; i >= stack; --i) mpf_clear(*i);
+        for(mpfr_t *i = stack + stack_size - 1; i >= stack; --i) mpfr_clear(*i);
         free(stack);
         stack_size = 0;
     }
@@ -40,7 +40,7 @@ int check_empty()
 
 void pop()
 {
-    mpf_clear(stack[stack_size - 1]);
+    mpfr_clear(stack[stack_size - 1]);
     if(stack_size == 1)
     {
         --stack_size;
@@ -49,7 +49,7 @@ void pop()
     else
     {
         --stack_size;
-        mpf_t *new_stack = realloc(stack, sizeof(mpf_t) * stack_size);
+        mpfr_t *new_stack = realloc(stack, sizeof(mpfr_t) * stack_size);
         if(new_stack == NULL) error("stack allocation error when popping");
         else stack = new_stack;
     }
@@ -57,19 +57,19 @@ void pop()
 
 void push()
 {
-    mpf_t *new_stack;
-    if(++stack_size == 1) new_stack = malloc(sizeof(mpf_t));
-    else                  new_stack = realloc(stack, sizeof(mpf_t) * stack_size);
+    mpfr_t *new_stack;
+    if(++stack_size == 1) new_stack = malloc(sizeof(mpfr_t));
+    else                  new_stack = realloc(stack, sizeof(mpfr_t) * stack_size);
     if(new_stack == NULL) error("stack allocation error when pushing");
     else
     {
         stack = new_stack;
-        mpf_init(stack[stack_size - 1]);
+        mpfr_init(stack[stack_size - 1]);
     }
 }
 
-mpf_t *peek_at(size_t offset) { return &stack[(stack_size - 1) - offset]; }
-mpf_t *peek()                 { return peek_at(0); }
+mpfr_t *peek_at(size_t offset) { return &stack[(stack_size - 1) - offset]; }
+mpfr_t *peek()                 { return peek_at(0); }
 
 void print_top()
 {
@@ -78,7 +78,7 @@ void print_top()
 
 void dump()
 {
-    for(mpf_t *i = stack + (stack_size - 1); i >= stack; --i) print(*i);
+    for(mpfr_t *i = stack + (stack_size - 1); i >= stack; --i) print(*i);
 }
 
 void print_size() { printf("%zd\n", stack_size); }
@@ -88,69 +88,69 @@ void duplicate_top()
     if(check_empty() == 0)
     {
         push();
-        mpf_set(*peek(), *peek_at(1));
+        mpfr_set(*peek(), *peek_at(1), MPFR_RNDN);
     }
 }
 
-void apply_unary(void (*f)(mpf_t, const mpf_t))
+void apply_unary(int (*f)(mpfr_t, const mpfr_t, mpfr_rnd_t))
 {
     if(check_empty() == 0)
     {
-        mpf_t op;
-        mpf_init(op);
-        mpf_set(op, *peek());
+        mpfr_t op;
+        mpfr_init(op);
+        mpfr_set(op, *peek(), MPFR_RNDN);
         pop();
         push();
-        (*f)(*peek(), op);
-        mpf_clear(op);
+        (*f)(*peek(), op, MPFR_RNDN);
+        mpfr_clear(op);
     }
 }
 
-void apply_binary(void (*f)(mpf_t, const mpf_t, const mpf_t))
+void apply_binary(int (*f)(mpfr_t, const mpfr_t, const mpfr_t, mpfr_rnd_t))
 {
     if(check_empty() == 0)
     {
-        mpf_t op2;
-        mpf_init(op2);
-        mpf_set(op2, *peek());
+        mpfr_t op2;
+        mpfr_init(op2);
+        mpfr_set(op2, *peek(), MPFR_RNDN);
         pop();
         if(check_empty() == 0)
         {
-            mpf_t op1;
-            mpf_init(op1);
-            mpf_set(op1, *peek());
+            mpfr_t op1;
+            mpfr_init(op1);
+            mpfr_set(op1, *peek(), MPFR_RNDN);
             pop();
             push();
-            (*f)(*peek(), op1, op2);
-            mpf_clear(op1);
+            (*f)(*peek(), op1, op2, MPFR_RNDN);
+            mpfr_clear(op1);
         }
-        mpf_clear(op2);
+        mpfr_clear(op2);
     }
 }
 
-void wrap_div(mpf_t rop, const mpf_t op1, const mpf_t op2)
+int wrap_div(mpfr_t rop, const mpfr_t op1, const mpfr_t op2, mpfr_rnd_t rnd)
 {
-    if(mpf_cmp_ui(op2, 0) == 0)
+    if(mpfr_cmp_ui(op2, 0) == 0)
     {
         error("divide by zero");
-        return;
+        return 0;
     }
-    mpf_div(rop, op1, op2);
+    return mpfr_div(rop, op1, op2, rnd);
 }
 
-void wrap_sqrt(mpf_t rop, const mpf_t op)
+int wrap_sqrt(mpfr_t rop, const mpfr_t op, mpfr_rnd_t rnd)
 {
-    if(mpf_cmp_ui(op, 0) < 0)
+    if(mpfr_cmp_ui(op, 0) < 0)
     {
         error("negative square root");
-        return;
+        return 0;
     }
-    mpf_sqrt(rop, op);
+    return mpfr_sqrt(rop, op, rnd);
 }
 
-void wrap_pow(mpf_t rop, const mpf_t op1, const mpf_t op2)
+int wrap_pow(mpfr_t rop, const mpfr_t op1, const mpfr_t op2, mpfr_rnd_t rnd)
 {
-    mpf_pow_ui(rop, op1, mpf_get_ui(op2));
+    return mpfr_pow(rop, op1, op2, rnd);
 }
 
 void take_digits(const char **str)
@@ -164,11 +164,11 @@ void parse_number(const char **start, const char *end, bool read_precision, bool
 {
     size_t len = (end - *start) + 1;
     char *str = malloc(sizeof(char) * len);
-    mpf_t val;
-    mpf_init(val);
+    mpfr_t val;
+    mpfr_init(val);
     strncpy(str, *start, len - 1);
     str[len - 1] = '\0';
-    if(mpf_set_str(val, str, 10) != 0)
+    if(mpfr_set_str(val, str, 10, MPFR_RNDN) != 0)
     {
         error("error while converting input to number");
     }
@@ -176,16 +176,16 @@ void parse_number(const char **start, const char *end, bool read_precision, bool
     *start = end - 1;
     if(read_precision)
     {
-        precision = mpf_get_ui(val);
-        mpf_set_default_prec(precision);
+        precision = mpfr_get_ui(val, MPFR_RNDN);
+        mpfr_set_default_prec(precision);
     }
     else
     {
-        if(negate) mpf_neg(val, val);
+        if(negate) mpfr_neg(val, val, MPFR_RNDN);
         push();
-        mpf_set(*peek(), val);
+        mpfr_set(*peek(), val, MPFR_RNDN);
     }
-    mpf_clear(val);
+    mpfr_clear(val);
 }
 
 void parse_line(const char *line, size_t line_size)
@@ -198,9 +198,9 @@ void parse_line(const char *line, size_t line_size)
         {
             case ' ':                          break;
             case '\n':                         break;
-            case '+': apply_binary(&mpf_add);  break;
-            case '-': apply_binary(&mpf_sub);  break;
-            case '*': apply_binary(&mpf_mul);  break;
+            case '+': apply_binary(&mpfr_add); break;
+            case '-': apply_binary(&mpfr_sub); break;
+            case '*': apply_binary(&mpfr_mul); break;
             case '/': apply_binary(&wrap_div); break;
             case '^': apply_binary(&wrap_pow); break;
             case 'v': apply_unary(&wrap_sqrt); break;
@@ -225,7 +225,6 @@ void parse_line(const char *line, size_t line_size)
 
 int main()
 {
-    mpf_set_default_prec(precision);
     char  *line     = NULL;
     size_t line_buf = 0;
     size_t line_size;
